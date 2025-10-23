@@ -147,6 +147,8 @@
         <div class="terminal" id="terminal">
             <div class="terminal-output">Unix Shell JS v1.0.0
 Type 'help' to see available commands, 'ls' to list files, or 'vim README.md' to edit a file.
+
+👉 Click anywhere in this terminal to start typing commands!
 </div>
             <div class="terminal-line">
                 <span class="prompt">user@demo:~$</span>
@@ -216,6 +218,45 @@ Type 'help' to see available commands, 'ls' to list files, or 'vim README.md' to
         }
 
         input.addEventListener('keydown', (e) => {
+            // Handle Tab for autocomplete
+            if (e.key === 'Tab') {
+                e.preventDefault();
+
+                const partial = input.value.trim();
+                if (!partial) return;
+
+                const completions = shell.getCompletions(partial);
+
+                if (completions.matches.length === 1) {
+                    // Single match - auto complete
+                    const match = completions.matches[0];
+
+                    if (completions.type === 'command') {
+                        input.value = match;
+                    } else if (completions.type === 'path') {
+                        // Replace the path part
+                        const parts = partial.split(/\s+/);
+                        const pathPrefix = completions.prefix;
+
+                        if (pathPrefix.includes('/')) {
+                            const lastSlash = pathPrefix.lastIndexOf('/');
+                            const dirPart = pathPrefix.substring(0, lastSlash + 1);
+                            parts[parts.length - 1] = dirPart + match;
+                        } else {
+                            parts[parts.length - 1] = match;
+                        }
+
+                        input.value = parts.join(' ');
+                    }
+                } else if (completions.matches.length > 1) {
+                    // Multiple matches - show them
+                    const matchList = completions.matches.join('  ');
+                    addOutput(matchList);
+                    window.scrollTo(0, document.body.scrollHeight);
+                }
+                return;
+            }
+
             if (e.key === 'Enter') {
                 const command = input.value.trim();
 
