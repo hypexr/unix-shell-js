@@ -15,14 +15,26 @@
     "vim",
     "vi",
     "linux",
-    "bash"
+    "bash",
+    "command-line",
+    "cli",
+    "filesystem"
   ],
-  "author": "",
+  "author": "Scott",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hypexr/unix-shell-js.git"
+  },
+  "bugs": {
+    "url": "https://github.com/hypexr/unix-shell-js/issues"
+  },
+  "homepage": "https://github.com/hypexr/unix-shell-js#readme",
   "files": [
     "index.js",
     "vi-editor.js",
     "example-files.js",
-    "README.md"
+    "README.md",
+    "LICENSE"
   ]
 }

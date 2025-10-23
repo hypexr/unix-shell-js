@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unix Shell JS - Live Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: #000;
+            color: #0f0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: #0f0;
+            margin-bottom: 10px;
+            font-size: 2em;
+        }
+
+        .description {
+            margin-bottom: 20px;
+            color: #0a0;
+        }
+
+        .terminal {
+            background: #111;
+            border: 2px solid #0f0;
+            border-radius: 5px;
+            padding: 20px;
+            min-height: 400px;
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.3);
+        }
+
+        .terminal-line {
+            margin: 5px 0;
+            display: flex;
+            align-items: baseline;
+        }
+
+        .prompt {
+            color: #0f0;
+            margin-right: 5px;
+        }
+
+        .terminal-input {
+            color: #0f0;
+            background: transparent;
+            border: none;
+            outline: none;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            flex: 1;
+        }
+
+        .terminal-output {
+            color: #0f0;
+            white-space: pre-wrap;
+            margin: 5px 0;
+        }
+
+        .cursor {
+            display: inline-block;
+            width: 8px;
+            height: 16px;
+            background: #0f0;
+            animation: blink 1s infinite;
+            margin-left: 2px;
+        }
+
+        @keyframes blink {
+            0%, 49% { opacity: 1; }
+            50%, 100% { opacity: 0; }
+        }
+
+        .info {
+            margin-top: 20px;
+            padding: 15px;
+            background: #112;
+            border: 1px solid #0f0;
+            border-radius: 5px;
+        }
+
+        .info h2 {
+            color: #0f0;
+            margin-bottom: 10px;
+            font-size: 1.2em;
+        }
+
+        .info ul {
+            list-style: none;
+            margin-left: 20px;
+        }
+
+        .info li:before {
+            content: "▸ ";
+            color: #0f0;
+        }
+
+        a {
+            color: #0f0;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        .links {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .links a {
+            margin: 0 10px;
+            padding: 10px 20px;
+            border: 1px solid #0f0;
+            border-radius: 3px;
+            display: inline-block;
+            transition: all 0.3s;
+        }
+
+        .links a:hover {
+            background: #0f0;
+            color: #000;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Unix Shell JS - Live Demo</h1>
+        <p class="description">Browser-based Unix/Linux command emulator with vi editor support</p>
+
+        <div class="terminal" id="terminal">
+            <div class="terminal-output">Unix Shell JS v1.0.0
+Type 'help' to see available commands, 'ls' to list files, or 'vim README.md' to edit a file.
+</div>
+            <div class="terminal-line">
+                <span class="prompt">user@demo:~$</span>
+                <input type="text" class="terminal-input" id="input" autocomplete="off" autofocus>
+                <span class="cursor"></span>
+            </div>
+        </div>
+
+        <div class="info">
+            <h2>Try These Commands:</h2>
+            <ul>
+                <li>ls -la (list all files)</li>
+                <li>cat README.md (read a file)</li>
+                <li>mkdir mydir (create directory)</li>
+                <li>cd mydir (change directory)</li>
+                <li>touch file.txt (create file)</li>
+                <li>vim notes.txt (edit with vi)</li>
+                <li>tree (show directory tree)</li>
+                <li>ps (show processes)</li>
+            </ul>
+        </div>
+
+        <div class="links">
+            <a href="https://github.com/hypexr/unix-shell-js">GitHub Repository</a>
+            <a href="https://www.npmjs.com/package/unix-shell-js">npm Package</a>
+        </div>
+    </div>
+
+    <script src="index.js"></script>
+    <script src="vi-editor.js"></script>
+    <script src="example-files.js"></script>
+    <script>
+        // Initialize the shell
+        const shell = new UnixShell({
+            username: 'user',
+            fileSystem: createExampleFiles('user'),
+            persistence: {
+                enabled: true,
+                prefix: 'demo'
+            }
+        });
+
+        const terminal = document.getElementById('terminal');
+        const input = document.getElementById('input');
+
+        function addOutput(text) {
+            const output = document.createElement('div');
+            output.className = 'terminal-output';
+            output.textContent = text;
+            terminal.insertBefore(output, terminal.lastElementChild);
+        }
+
+        function updatePrompt() {
+            const prompt = document.querySelector('.prompt');
+            const user = shell.getCurrentUser();
+            let path = shell.getCurrentPath();
+            const home = shell.environment.HOME;
+
+            // Replace home with ~
+            if (path === home) {
+                path = '~';
+            } else if (path.startsWith(home + '/')) {
+                path = '~' + path.substring(home.length);
+            }
+
+            prompt.textContent = `${user}@demo:${path}$`;
+        }
+
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                const command = input.value.trim();
+
+                if (command) {
+                    // Show command
+                    const commandLine = document.createElement('div');
+                    commandLine.className = 'terminal-line';
+                    commandLine.innerHTML = `<span class="prompt">${document.querySelector('.prompt').textContent}</span> ${command}`;
+                    terminal.insertBefore(commandLine, terminal.lastElementChild);
+
+                    // Execute command
+                    const output = shell.execute(command);
+
+                    // Handle special outputs
+                    if (output === '__CLEAR__') {
+                        // Clear terminal
+                        const outputs = terminal.querySelectorAll('.terminal-output, .terminal-line:not(:last-child)');
+                        outputs.forEach(el => el.remove());
+                    } else if (output === '__VI_OPENED__') {
+                        // Vi editor opened
+                    } else if (output && output.startsWith('__USER_SWITCHED__:')) {
+                        // User switched
+                        updatePrompt();
+                    } else if (output) {
+                        // Show output
+                        addOutput(output);
+                    }
+
+                    // Update prompt in case path changed
+                    updatePrompt();
+                }
+
+                input.value = '';
+
+                // Scroll to bottom
+                window.scrollTo(0, document.body.scrollHeight);
+            }
+        });
+
+        // Focus input when clicking anywhere
+        document.addEventListener('click', () => {
+            input.focus();
+        });
+    </script>
+</body>
+</html>
