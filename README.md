@@ -2,6 +2,8 @@
 
 A browser-based Unix/Linux command emulator with vi editor support.
 
+**[🚀 Try the Live Demo](https://hypexr.github.io/unix-shell-js/)**
+
 ## Features
 
 - Common Unix commands (ls, cd, cat, mkdir, rm, etc.)
