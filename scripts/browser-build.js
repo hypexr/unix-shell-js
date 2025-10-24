@@ -11,12 +11,12 @@ const path = require('path');
 const files = ['index.js', 'vi-editor.js', 'example-files.js'];
 const distDir = path.join(__dirname, '..', 'dist');
 
-files.forEach(filename => {
-    const filepath = path.join(distDir, filename);
-    const content = fs.readFileSync(filepath, 'utf8');
+files.forEach((filename) => {
+  const filepath = path.join(distDir, filename);
+  const content = fs.readFileSync(filepath, 'utf8');
 
-    // Wrap in IIFE that provides module and exports
-    const wrapped = `(function() {
+  // Wrap in IIFE that provides module and exports
+  const wrapped = `(function() {
     var exports = {};
     var module = { exports: exports };
 
@@ -26,8 +26,8 @@ ${content}
 })();
 `;
 
-    fs.writeFileSync(filepath, wrapped, 'utf8');
-    console.log(`Wrapped ${filename} for browser compatibility`);
+  fs.writeFileSync(filepath, wrapped, 'utf8');
+  console.log(`Wrapped ${filename} for browser compatibility`);
 });
 
 console.log('Browser build complete!');

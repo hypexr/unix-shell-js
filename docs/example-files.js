@@ -15,7 +15,7 @@ exports.createExampleFiles = createExampleFiles;
 function createExampleFiles(username = 'user') {
     return {
         '/': {
-            'home': {
+            home: {
                 [username]: {
                     'README.md': `# Welcome to Unix Shell JS
 
@@ -48,15 +48,15 @@ Try creating your own files with touch or vim!
 - Project started on ${new Date().toISOString().split('T')[0]}
 - This is a minimal Unix shell emulator
 - Add your own notes here!
-`
-                }
+`,
+                },
             },
-            'etc': {
-                'hostname': 'localhost\n',
-                'motd': 'Welcome to Unix Shell JS!\n\nType "help" for available commands.\n'
+            etc: {
+                hostname: 'localhost\n',
+                motd: 'Welcome to Unix Shell JS!\n\nType "help" for available commands.\n',
             },
-            'tmp': {}
-        }
+            tmp: {},
+        },
     };
 }
 // Make available in browser

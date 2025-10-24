@@ -42,11 +42,11 @@ class UnixShell {
         // User stack for exit command (don't persist this)
         this.userStack = [];
         this.environment = {
-            'USER': this.currentUser,
-            'HOME': `/home/${this.currentUser}`,
-            'PWD': this.currentPath,
-            'PATH': '/usr/local/bin:/usr/bin:/bin',
-            'SHELL': '/bin/bash'
+            USER: this.currentUser,
+            HOME: `/home/${this.currentUser}`,
+            PWD: this.currentPath,
+            PATH: '/usr/local/bin:/usr/bin:/bin',
+            SHELL: '/bin/bash',
         };
         this.commandHistory = [];
         // Piped output flag
@@ -61,17 +61,17 @@ class UnixShell {
     createDefaultFileSystem(username) {
         return {
             '/': {
-                'home': {
+                home: {
                     [username]: {
                         'README.md': '# Welcome\n\nThis is a simple Unix shell emulator.\n',
-                        'example.txt': 'This is an example file.\n'
-                    }
+                        'example.txt': 'This is an example file.\n',
+                    },
                 },
-                'etc': {
-                    'hostname': 'localhost\n'
+                etc: {
+                    hostname: 'localhost\n',
                 },
-                'tmp': {}
-            }
+                tmp: {},
+            },
         };
     }
     /**
@@ -98,7 +98,7 @@ class UnixShell {
                 return null;
             }
             // Validate that the saved path exists in the filesystem
-            const pathParts = savedPath.split('/').filter(p => p);
+            const pathParts = savedPath.split('/').filter((p) => p);
             let current = fileSystem['/'];
             for (const part of pathParts) {
                 if (!current || typeof current !== 'object' || !(part in current)) {
@@ -110,7 +110,7 @@ class UnixShell {
             return {
                 fileSystem: fileSystem,
                 currentUser: savedUser,
-                currentPath: savedPath
+                currentPath: savedPath,
             };
         }
         catch (e) {
@@ -183,7 +183,7 @@ class UnixShell {
             vim: this.cmd_vim.bind(this),
             su: this.cmd_su.bind(this),
             sudo: this.cmd_sudo.bind(this),
-            exit: this.cmd_exit.bind(this)
+            exit: this.cmd_exit.bind(this),
         };
         // Add custom commands (these will overwrite built-in commands if same name)
         for (const [name, handler] of Object.entries(customCommands)) {
@@ -201,8 +201,8 @@ class UnixShell {
         if (path.startsWith('/')) {
             return path;
         }
-        const parts = this.currentPath.split('/').filter(p => p);
-        const newParts = path.split('/').filter(p => p);
+        const parts = this.currentPath.split('/').filter((p) => p);
+        const newParts = path.split('/').filter((p) => p);
         for (const part of newParts) {
             if (part === '..') {
                 parts.pop();
@@ -218,7 +218,7 @@ class UnixShell {
      */
     getNode(path) {
         const fullPath = this.resolvePath(path);
-        const parts = fullPath.split('/').filter(p => p);
+        const parts = fullPath.split('/').filter((p) => p);
         let current = this.fileSystem['/'];
         for (const part of parts) {
             if (current && typeof current === 'object' && part in current) {
@@ -254,7 +254,7 @@ class UnixShell {
     // Command implementations
     cmd_help() {
         const commandList = Object.keys(this.commands).sort();
-        return `Available commands:\n${commandList.map(cmd => `  ${cmd}`).join('\n')}\n\nType any command to try it out!`;
+        return `Available commands:\n${commandList.map((cmd) => `  ${cmd}`).join('\n')}\n\nType any command to try it out!`;
     }
     cmd_ls(args) {
         // Parse flags and paths
@@ -296,7 +296,7 @@ class UnixShell {
             let entries = Object.keys(node);
             // Filter hidden files unless -a is specified
             if (!showHidden) {
-                entries = entries.filter(name => !name.startsWith('.'));
+                entries = entries.filter((name) => !name.startsWith('.'));
             }
             if (entries.length === 0) {
                 continue;
@@ -313,7 +313,8 @@ class UnixShell {
             });
             if (longFormat) {
                 // Long format listing
-                const listing = entries.map(name => {
+                const listing = entries
+                    .map((name) => {
                     const isDir = typeof node[name] === 'object';
                     const perms = isDir ? 'drwxr-xr-x' : '-rw-r--r--';
                     const links = isDir ? '2' : '1';
@@ -344,15 +345,16 @@ class UnixShell {
                         month: 'short',
                         day: 'numeric',
                         hour: '2-digit',
-                        minute: '2-digit'
+                        minute: '2-digit',
                     });
                     return `${perms} ${links} ${user.padEnd(8)} ${group.padEnd(8)} ${size.padStart(humanReadable ? 5 : 8)} ${date} ${name}`;
-                }).join('\n');
+                })
+                    .join('\n');
                 results.push(listing);
             }
             else {
                 // Simple format
-                const formatted = entries.map(name => {
+                const formatted = entries.map((name) => {
                     const isDir = typeof node[name] === 'object';
                     return isDir ? `${name}/` : name;
                 });
@@ -430,9 +432,7 @@ class UnixShell {
             .join('\n');
     }
     cmd_history() {
-        return this.commandHistory
-            .map((cmd, i) => `${i + 1}  ${cmd}`)
-            .join('\n');
+        return this.commandHistory.map((cmd, i) => `${i + 1}  ${cmd}`).join('\n');
     }
     cmd_mkdir(args) {
         if (!args[0]) {
@@ -443,7 +443,7 @@ class UnixShell {
         if (!this.canWrite(path)) {
             return `mkdir: cannot create directory '${args[0]}': Permission denied`;
         }
-        const parts = path.split('/').filter(p => p);
+        const parts = path.split('/').filter((p) => p);
         const dirName = parts.pop();
         const parentPath = '/' + parts.join('/');
         const parent = this.getNode(parentPath);
@@ -468,7 +468,7 @@ class UnixShell {
         if (!this.canWrite(path)) {
             return `touch: cannot touch '${args[0]}': Permission denied`;
         }
-        const parts = path.split('/').filter(p => p);
+        const parts = path.split('/').filter((p) => p);
         const fileName = parts.pop();
         const parentPath = '/' + parts.join('/');
         const parent = this.getNode(parentPath);
@@ -513,7 +513,7 @@ class UnixShell {
         // Process each target
         for (const target of targets) {
             const path = this.resolvePath(target);
-            const parts = path.split('/').filter(p => p);
+            const parts = path.split('/').filter((p) => p);
             const fileName = parts.pop();
             const parentPath = '/' + parts.join('/');
             const parent = this.getNode(parentPath);
@@ -578,11 +578,11 @@ class UnixShell {
         const processes = [
             { pid: 1, user: 'root', tty: '?', time: '0:01', cmd: 'init' },
             { pid: 100, user: this.currentUser, tty: 'pts/0', time: '0:00', cmd: 'bash' },
-            { pid: 101, user: this.currentUser, tty: 'pts/0', time: '0:00', cmd: 'ps' }
+            { pid: 101, user: this.currentUser, tty: 'pts/0', time: '0:00', cmd: 'ps' },
         ];
         // Simple output format
         let output = '  PID TTY          TIME CMD\n';
-        processes.forEach(p => {
+        processes.forEach((p) => {
             output += `${String(p.pid).padStart(5)} ${p.tty.padEnd(12)} ${p.time.padStart(8)} ${p.cmd}\n`;
         });
         return output;
@@ -599,7 +599,7 @@ class UnixShell {
         this.userStack.push({
             user: this.currentUser,
             home: this.environment.HOME,
-            path: this.currentPath
+            path: this.currentPath,
         });
         this.currentUser = targetUser;
         this.environment.USER = targetUser;
@@ -648,7 +648,7 @@ class UnixShell {
                 if (currentDir && typeof currentDir === 'object') {
                     const pattern = arg.replace(/\*/g, '.*').replace(/\?/g, '.');
                     const regex = new RegExp(`^${pattern}$`);
-                    const matches = Object.keys(currentDir).filter(name => regex.test(name));
+                    const matches = Object.keys(currentDir).filter((name) => regex.test(name));
                     if (matches.length > 0) {
                         expanded.push(...matches);
                     }
@@ -733,7 +733,7 @@ class UnixShell {
         let output = '';
         if (command in this.commands) {
             try {
-                this._isPiped = (grepPattern !== null);
+                this._isPiped = grepPattern !== null;
                 output = this.commands[command](args);
                 this._isPiped = false;
             }
@@ -747,7 +747,7 @@ class UnixShell {
         // Apply grep filter if present
         if (grepPattern !== null && output) {
             const lines = output.split('\n');
-            const filtered = lines.filter(line => {
+            const filtered = lines.filter((line) => {
                 let matches;
                 if (grepFlags.ignoreCase) {
                     matches = line.toLowerCase().includes(grepPattern.toLowerCase());
@@ -781,7 +781,7 @@ class UnixShell {
      */
     writeToFile(filePath, content, mode) {
         const fullPath = this.resolvePath(filePath);
-        const parts = fullPath.split('/').filter(p => p);
+        const parts = fullPath.split('/').filter((p) => p);
         const fileName = parts.pop();
         const parentPath = '/' + parts.join('/');
         const parent = this.getNode(parentPath);
@@ -848,7 +848,7 @@ class UnixShell {
         const parts = partial.trim().split(/\s+/);
         if (parts.length === 1) {
             const prefix = parts[0];
-            const commands = Object.keys(this.commands).filter(cmd => cmd.startsWith(prefix));
+            const commands = Object.keys(this.commands).filter((cmd) => cmd.startsWith(prefix));
             return { type: 'command', matches: commands, prefix };
         }
         const pathPrefix = parts[parts.length - 1];
@@ -865,8 +865,8 @@ class UnixShell {
             return { type: 'path', matches: [], prefix: pathPrefix };
         }
         const matches = Object.keys(node)
-            .filter(name => name.startsWith(filePrefix))
-            .map(name => {
+            .filter((name) => name.startsWith(filePrefix))
+            .map((name) => {
             const isDir = typeof node[name] === 'object';
             return isDir ? name + '/' : name;
         });

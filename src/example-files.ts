@@ -9,11 +9,11 @@ import { FileSystem } from './index';
  * @returns A complete filesystem structure with example files
  */
 export function createExampleFiles(username: string = 'user'): FileSystem {
-    return {
-        '/': {
-            'home': {
-                [username]: {
-                    'README.md': `# Welcome to Unix Shell JS
+  return {
+    '/': {
+      home: {
+        [username]: {
+          'README.md': `# Welcome to Unix Shell JS
 
 This is a browser-based Unix shell emulator.
 
@@ -31,37 +31,37 @@ Type \`help\` to see all available commands.
 
 Have fun!
 `,
-                    'example.txt': `This is an example text file.
+          'example.txt': `This is an example text file.
 
 You can view this with: cat example.txt
 You can edit it with: vim example.txt
 
 Try creating your own files with touch or vim!
 `,
-                    'notes.txt': `Development Notes
+          'notes.txt': `Development Notes
 ==================
 
 - Project started on ${new Date().toISOString().split('T')[0]}
 - This is a minimal Unix shell emulator
 - Add your own notes here!
-`
-                }
-            },
-            'etc': {
-                'hostname': 'localhost\n',
-                'motd': 'Welcome to Unix Shell JS!\n\nType "help" for available commands.\n'
-            },
-            'tmp': {}
-        }
-    };
+`,
+        },
+      },
+      etc: {
+        hostname: 'localhost\n',
+        motd: 'Welcome to Unix Shell JS!\n\nType "help" for available commands.\n',
+      },
+      tmp: {},
+    },
+  };
 }
 
 // Make available in browser
 if (typeof window !== 'undefined') {
-    (window as any).createExampleFiles = createExampleFiles;
+  (window as any).createExampleFiles = createExampleFiles;
 }
 
 // Export for Node.js/npm
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { createExampleFiles };
+  module.exports = { createExampleFiles };
 }

@@ -95,7 +95,7 @@ class ViEditor {
                             output += '|'; // Insert mode cursor
                         }
                         else {
-                            output += (j < line.length) ? `[${line[j]}]` : '[█]';
+                            output += j < line.length ? `[${line[j]}]` : '[█]';
                         }
                     }
                     else if (j < line.length) {
@@ -239,7 +239,8 @@ class ViEditor {
             const match = remaining.match(/^\S+\s*/);
             if (match) {
                 deletedContent = match[0];
-                this.lines[this.cursorRow] = line.slice(0, this.cursorCol) + line.slice(this.cursorCol + match[0].length);
+                this.lines[this.cursorRow] =
+                    line.slice(0, this.cursorCol) + line.slice(this.cursorCol + match[0].length);
             }
         }
         else if (key === 'l' || key === 'ArrowRight') {
@@ -311,7 +312,8 @@ class ViEditor {
         else if (key === '$') {
             this.cursorCol = this.lines[this.cursorRow].length;
         }
-        else if (key === 'g' && e.shiftKey) { // G
+        else if (key === 'g' && e.shiftKey) {
+            // G
             this.cursorRow = this.lines.length - 1;
         }
         // Insert mode
@@ -343,15 +345,18 @@ class ViEditor {
                 this.modified = true;
             }
         }
-        else if (key === 'd' && e.shiftKey) { // D - delete to end of line
+        else if (key === 'd' && e.shiftKey) {
+            // D - delete to end of line
             this.lines[this.cursorRow] = this.lines[this.cursorRow].slice(0, this.cursorCol);
             this.modified = true;
         }
-        else if (key === 'd' && !e.shiftKey) { // d - start of multi-key command (dd, dw, etc)
+        else if (key === 'd' && !e.shiftKey) {
+            // d - start of multi-key command (dd, dw, etc)
             this.normalModeBuffer = 'd';
         }
         // Yank (copy) line
-        else if (key === 'y' && e.shiftKey) { // Y
+        else if (key === 'y' && e.shiftKey) {
+            // Y
             this.yankBuffer = this.lines[this.cursorRow];
             this.message = 'yanked line';
         }
