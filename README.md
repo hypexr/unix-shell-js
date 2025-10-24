@@ -1,5 +1,9 @@
 # Unix Shell JS
 
+[![Tests](https://github.com/hypexr/unix-shell-js/actions/workflows/test.yml/badge.svg)](https://github.com/hypexr/unix-shell-js/actions/workflows/test.yml)
+[![Build](https://github.com/hypexr/unix-shell-js/actions/workflows/build.yml/badge.svg)](https://github.com/hypexr/unix-shell-js/actions/workflows/build.yml)
+[![npm version](https://badge.fury.io/js/unix-shell-js.svg)](https://www.npmjs.com/package/unix-shell-js)
+
 A browser-based Unix/Linux command emulator with vi editor support.
 
 **[Try the Live Demo](https://hypexr.github.io/unix-shell-js/)**
