@@ -202,6 +202,49 @@ function handleCommand(inputText) {
 }
 ```
 
+## Integration Tips
+
+### Managing the Command Prompt
+
+When building a terminal UI, you'll need to display a prompt that shows the current user and directory. The prompt typically needs to update after commands like `cd` or `su` that change the current path or user.
+
+**Pattern for updating the prompt:**
+
+```javascript
+function updatePrompt() {
+    const user = shell.getCurrentUser();
+    let path = shell.getCurrentPath();
+    const home = shell.environment.HOME;
+
+    // Replace home directory with ~
+    if (path === home) {
+        path = '~';
+    } else if (path.startsWith(home + '/')) {
+        path = '~' + path.substring(home.length);
+    }
+
+    // Use # for root, $ for regular users
+    const promptChar = user === 'root' ? '#' : '$';
+
+    // Update your prompt element
+    promptElement.textContent = `${user}@hostname:${path}${promptChar}`;
+}
+```
+
+**Typical command execution flow:**
+
+1. User enters a command
+2. Capture the current prompt text (for display in command history)
+3. Execute the command: `const output = shell.execute(command)`
+4. Display the command with its original prompt in history
+5. Display the command output
+6. Update the active prompt to reflect any changes (new path, new user, etc.)
+7. Clear the input field for the next command
+
+**Key point:** When displaying command history, preserve the prompt as it was when the command was entered. Only update the active input prompt after command execution.
+
+See the [live demo source code](https://github.com/hypexr/unix-shell-js/blob/main/docs/index.html) for a complete working example.
+
 ## API Reference
 
 ### UnixShell Constructor

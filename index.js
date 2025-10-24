@@ -276,7 +276,7 @@ class UnixShell {
         const path = targetPath || this.currentPath;
         const node = this.getNode(path);
 
-        if (!node) {
+        if (node === null || node === undefined) {
             return `ls: cannot access '${targetPath || '.'}': No such file or directory`;
         }
 
@@ -369,7 +369,7 @@ class UnixShell {
         const newPath = this.resolvePath(args[0]);
         const node = this.getNode(newPath);
 
-        if (!node) {
+        if (node === null || node === undefined) {
             return `cd: ${args[0]}: No such file or directory`;
         }
 
@@ -393,7 +393,7 @@ class UnixShell {
 
         const node = this.getNode(args[0]);
 
-        if (!node) {
+        if (node === null || node === undefined) {
             return `cat: ${args[0]}: No such file or directory`;
         }
 

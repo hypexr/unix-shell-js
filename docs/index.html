@@ -4,140 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Unix Shell JS - Live Demo</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Courier New', monospace;
-            background: #000;
-            color: #0f0;
-            padding: 20px;
-            line-height: 1.6;
-        }
-
-        .container {
-            max-width: 1000px;
-            margin: 0 auto;
-        }
-
-        h1 {
-            color: #0f0;
-            margin-bottom: 10px;
-            font-size: 2em;
-        }
-
-        .description {
-            margin-bottom: 20px;
-            color: #0a0;
-        }
-
-        .terminal {
-            background: #111;
-            border: 2px solid #0f0;
-            border-radius: 5px;
-            padding: 20px;
-            min-height: 400px;
-            box-shadow: 0 0 20px rgba(0, 255, 0, 0.3);
-        }
-
-        .terminal-line {
-            margin: 5px 0;
-            display: flex;
-            align-items: baseline;
-        }
-
-        .prompt {
-            color: #0f0;
-            margin-right: 5px;
-        }
-
-        .terminal-input {
-            color: #0f0;
-            background: transparent;
-            border: none;
-            outline: none;
-            font-family: 'Courier New', monospace;
-            font-size: 14px;
-            flex: 1;
-        }
-
-        .terminal-output {
-            color: #0f0;
-            white-space: pre-wrap;
-            margin: 5px 0;
-        }
-
-        .cursor {
-            display: inline-block;
-            width: 8px;
-            height: 16px;
-            background: #0f0;
-            animation: blink 1s infinite;
-            margin-left: 2px;
-        }
-
-        @keyframes blink {
-            0%, 49% { opacity: 1; }
-            50%, 100% { opacity: 0; }
-        }
-
-        .info {
-            margin-top: 20px;
-            padding: 15px;
-            background: #112;
-            border: 1px solid #0f0;
-            border-radius: 5px;
-        }
-
-        .info h2 {
-            color: #0f0;
-            margin-bottom: 10px;
-            font-size: 1.2em;
-        }
-
-        .info ul {
-            list-style: none;
-            margin-left: 20px;
-        }
-
-        .info li:before {
-            content: "▸ ";
-            color: #0f0;
-        }
-
-        a {
-            color: #0f0;
-            text-decoration: none;
-        }
-
-        a:hover {
-            text-decoration: underline;
-        }
-
-        .links {
-            margin-top: 20px;
-            text-align: center;
-        }
-
-        .links a {
-            margin: 0 10px;
-            padding: 10px 20px;
-            border: 1px solid #0f0;
-            border-radius: 3px;
-            display: inline-block;
-            transition: all 0.3s;
-        }
-
-        .links a:hover {
-            background: #0f0;
-            color: #000;
-            text-decoration: none;
-        }
-    </style>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="container">
@@ -147,13 +14,10 @@
         <div class="terminal" id="terminal">
             <div class="terminal-output">Unix Shell JS v1.0.0
 Type 'help' to see available commands, 'ls' to list files, or 'vim README.md' to edit a file.
-
-👉 Click anywhere in this terminal to start typing commands!
 </div>
             <div class="terminal-line">
                 <span class="prompt">user@demo:~$</span>
                 <input type="text" class="terminal-input" id="input" autocomplete="off" autofocus>
-                <span class="cursor"></span>
             </div>
         </div>
 
@@ -181,6 +45,8 @@ Type 'help' to see available commands, 'ls' to list files, or 'vim README.md' to
     <script src="vi-editor.js"></script>
     <script src="example-files.js"></script>
     <script>
+        // Wait for scripts to load
+        window.addEventListener('load', function() {
         // Initialize the shell
         const shell = new UnixShell({
             username: 'user',
@@ -202,7 +68,14 @@ Type 'help' to see available commands, 'ls' to list files, or 'vim README.md' to
         }
 
         function updatePrompt() {
-            const prompt = document.querySelector('.prompt');
+            // Get the prompt in the last terminal-line (the active input line)
+            // Specifically avoid history lines
+            const activeLine = terminal.querySelector('.terminal-line:last-child');
+            if (!activeLine || activeLine.classList.contains('terminal-history')) return;
+
+            const prompt = activeLine.querySelector('.prompt');
+            if (!prompt) return;
+
             const user = shell.getCurrentUser();
             let path = shell.getCurrentPath();
             const home = shell.environment.HOME;
@@ -216,6 +89,9 @@ Type 'help' to see available commands, 'ls' to list files, or 'vim README.md' to
 
             prompt.textContent = `${user}@demo:${path}$`;
         }
+
+        // Update prompt on load to reflect any restored state from localStorage
+        updatePrompt();
 
         input.addEventListener('keydown', (e) => {
             // Handle Tab for autocomplete
@@ -252,7 +128,6 @@ Type 'help' to see available commands, 'ls' to list files, or 'vim README.md' to
                     // Multiple matches - show them
                     const matchList = completions.matches.join('  ');
                     addOutput(matchList);
-                    window.scrollTo(0, document.body.scrollHeight);
                 }
                 return;
             }
@@ -261,10 +136,13 @@ Type 'help' to see available commands, 'ls' to list files, or 'vim README.md' to
                 const command = input.value.trim();
 
                 if (command) {
-                    // Show command
+                    // Capture current prompt text before executing command
+                    const currentPromptText = terminal.querySelector('.terminal-line:last-child .prompt').textContent;
+
+                    // Show command with the prompt as it was when command was entered
                     const commandLine = document.createElement('div');
-                    commandLine.className = 'terminal-line';
-                    commandLine.innerHTML = `<span class="prompt">${document.querySelector('.prompt').textContent}</span> ${command}`;
+                    commandLine.className = 'terminal-line terminal-history';
+                    commandLine.innerHTML = `<span class="prompt">${currentPromptText}</span> ${command}`;
                     terminal.insertBefore(commandLine, terminal.lastElementChild);
 
                     // Execute command
@@ -291,8 +169,8 @@ Type 'help' to see available commands, 'ls' to list files, or 'vim README.md' to
 
                 input.value = '';
 
-                // Scroll to bottom
-                window.scrollTo(0, document.body.scrollHeight);
+                // Scroll terminal to bottom to keep input visible
+                terminal.scrollTop = terminal.scrollHeight;
             }
         });
 
@@ -300,6 +178,7 @@ Type 'help' to see available commands, 'ls' to list files, or 'vim README.md' to
         document.addEventListener('click', () => {
             input.focus();
         });
+        }); // End of window.addEventListener('load')
     </script>
 </body>
 </html>
