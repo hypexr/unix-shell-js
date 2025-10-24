@@ -57,18 +57,6 @@ Try creating your own files with touch or vim!
 }
 
 // Make available in browser
-declare global {
-    interface Window {
-        createExampleFiles?: typeof createExampleFiles;
-    }
-}
-
 if (typeof window !== 'undefined') {
-    window.createExampleFiles = createExampleFiles;
-}
-
-// Export for Node.js
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { createExampleFiles };
-    module.exports.createExampleFiles = createExampleFiles;
+    (window as any).createExampleFiles = createExampleFiles;
 }

@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "target": "ES2015",
-    "module": "commonjs",
+    "module": "UMD",
     "lib": ["ES2015", "DOM"],
     "outDir": "./dist",
     "rootDir": "./src",

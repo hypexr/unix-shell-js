@@ -1135,9 +1135,3 @@ export class UnixShell {
 if (typeof window !== 'undefined') {
     (window as any).UnixShell = UnixShell;
 }
-
-// Export for Node.js
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { UnixShell };
-    module.exports.UnixShell = UnixShell;
-}

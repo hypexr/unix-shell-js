@@ -536,8 +536,3 @@ export class ViEditor {
 if (typeof window !== 'undefined') {
     (window as any).ViEditor = ViEditor;
 }
-
-// Export for Node.js
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = ViEditor;
-}
