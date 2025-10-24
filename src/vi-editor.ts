@@ -1,8 +1,57 @@
 // Simple Vi/Vim Editor Implementation
 // Implements basic vi modal editing functionality
 
-class ViEditor {
-    constructor(filename, content, saveCallback, exitCallback) {
+/**
+ * Vi editor mode
+ */
+export type ViMode = 'normal' | 'insert' | 'command';
+
+/**
+ * Save callback function type
+ */
+export type SaveCallback = (filename: string, content: string) => boolean;
+
+/**
+ * Exit callback function type
+ */
+export type ExitCallback = () => void;
+
+/**
+ * Simple Vi/Vim editor implementation
+ */
+export class ViEditor {
+    private filename: string;
+    private lines: string[];
+    private saveCallback: SaveCallback | null;
+    private exitCallback: ExitCallback | null;
+
+    private cursorRow: number;
+    private cursorCol: number;
+    private mode: ViMode;
+    private commandBuffer: string;
+    private normalModeBuffer: string;
+    private yankBuffer: string;
+    private message: string;
+    private modified: boolean;
+
+    private element: HTMLDivElement | null;
+    private contentArea!: HTMLPreElement;
+    private statusLine!: HTMLDivElement;
+    private keyHandler!: (e: KeyboardEvent) => void;
+
+    /**
+     * Creates a new Vi editor instance
+     * @param filename - Name of the file being edited
+     * @param content - Initial file content
+     * @param saveCallback - Function to call when saving
+     * @param exitCallback - Function to call when exiting
+     */
+    constructor(
+        filename: string,
+        content: string,
+        saveCallback: SaveCallback | null,
+        exitCallback: ExitCallback | null
+    ) {
         this.filename = filename;
         this.lines = content ? content.split('\n') : [''];
         this.saveCallback = saveCallback;
@@ -10,9 +59,9 @@ class ViEditor {
 
         this.cursorRow = 0;
         this.cursorCol = 0;
-        this.mode = 'normal'; // 'normal', 'insert', 'command'
+        this.mode = 'normal';
         this.commandBuffer = '';
-        this.normalModeBuffer = ''; // For multi-key commands like dd
+        this.normalModeBuffer = '';
         this.yankBuffer = '';
         this.message = '';
         this.modified = false;
@@ -23,7 +72,10 @@ class ViEditor {
         this.attachEventListeners();
     }
 
-    setupUI() {
+    /**
+     * Sets up the editor UI
+     */
+    private setupUI(): void {
         // Create editor container
         this.element = document.createElement('div');
         this.element.className = 'vi-editor';
@@ -67,7 +119,10 @@ class ViEditor {
         document.body.appendChild(this.element);
     }
 
-    render() {
+    /**
+     * Renders the editor content and status line
+     */
+    private render(): void {
         // Render content with cursor
         let output = '';
 
@@ -109,12 +164,18 @@ class ViEditor {
         }
     }
 
-    attachEventListeners() {
-        this.keyHandler = (e) => this.handleKey(e);
+    /**
+     * Attaches keyboard event listeners
+     */
+    private attachEventListeners(): void {
+        this.keyHandler = (e: KeyboardEvent) => this.handleKey(e);
         document.addEventListener('keydown', this.keyHandler);
     }
 
-    handleKey(e) {
+    /**
+     * Main keyboard event handler
+     */
+    private handleKey(e: KeyboardEvent): void {
         e.preventDefault();
         this.message = '';
 
@@ -129,7 +190,10 @@ class ViEditor {
         this.render();
     }
 
-    handleDeleteMotion(key) {
+    /**
+     * Handles delete motion commands (d + motion key)
+     */
+    private handleDeleteMotion(key: string): void {
         let deletedContent = '';
         let numLinesDeleted = 0;
 
@@ -257,7 +321,10 @@ class ViEditor {
         this.normalModeBuffer = '';
     }
 
-    handleNormalMode(e) {
+    /**
+     * Handles normal mode keyboard events
+     */
+    private handleNormalMode(e: KeyboardEvent): void {
         const key = e.key;
 
         // Check for delete motion commands (d + motion)
@@ -346,7 +413,10 @@ class ViEditor {
         }
     }
 
-    handleInsertMode(e) {
+    /**
+     * Handles insert mode keyboard events
+     */
+    private handleInsertMode(e: KeyboardEvent): void {
         const key = e.key;
 
         if (key === 'Escape') {
@@ -385,7 +455,10 @@ class ViEditor {
         }
     }
 
-    handleCommandMode(e) {
+    /**
+     * Handles command mode keyboard events
+     */
+    private handleCommandMode(e: KeyboardEvent): void {
         const key = e.key;
 
         if (key === 'Escape') {
@@ -404,7 +477,10 @@ class ViEditor {
         }
     }
 
-    executeCommand(cmd) {
+    /**
+     * Executes a command mode command
+     */
+    private executeCommand(cmd: string): void {
         if (cmd === 'w') {
             // Write file
             this.save();
@@ -431,7 +507,10 @@ class ViEditor {
         }
     }
 
-    save() {
+    /**
+     * Saves the file
+     */
+    private save(): void {
         const content = this.lines.join('\n');
         if (this.saveCallback) {
             this.saveCallback(this.filename, content);
@@ -439,9 +518,14 @@ class ViEditor {
         this.modified = false;
     }
 
-    close() {
+    /**
+     * Closes the editor
+     */
+    private close(): void {
         document.removeEventListener('keydown', this.keyHandler);
-        document.body.removeChild(this.element);
+        if (this.element) {
+            document.body.removeChild(this.element);
+        }
         if (this.exitCallback) {
             this.exitCallback();
         }
@@ -450,7 +534,7 @@ class ViEditor {
 
 // Make available in browser
 if (typeof window !== 'undefined') {
-    window.ViEditor = ViEditor;
+    (window as any).ViEditor = ViEditor;
 }
 
 // Export for Node.js

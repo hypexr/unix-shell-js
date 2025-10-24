@@ -1,7 +1,14 @@
 // Example file structure for user's home directory
 // These are minimal example files that can be used to populate the filesystem
 
-function createExampleFiles(username = 'user') {
+import { FileSystem } from './index';
+
+/**
+ * Creates an example filesystem structure with sample files
+ * @param username - The username to create the home directory for
+ * @returns A complete filesystem structure with example files
+ */
+export function createExampleFiles(username: string = 'user'): FileSystem {
     return {
         '/': {
             'home': {
@@ -50,11 +57,18 @@ Try creating your own files with touch or vim!
 }
 
 // Make available in browser
+declare global {
+    interface Window {
+        createExampleFiles?: typeof createExampleFiles;
+    }
+}
+
 if (typeof window !== 'undefined') {
     window.createExampleFiles = createExampleFiles;
 }
 
 // Export for Node.js
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = createExampleFiles;
+    module.exports = { createExampleFiles };
+    module.exports.createExampleFiles = createExampleFiles;
 }

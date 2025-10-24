@@ -1,10 +1,17 @@
 {
   "name": "unix-shell-js",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "Browser-based Unix/Linux command emulator with vi editor support",
-  "main": "index.js",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "tsc && npm run copy-to-demo",
+    "copy-to-demo": "cp dist/index.js dist/vi-editor.js dist/example-files.js docs/",
+    "watch": "tsc --watch",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "prepublishOnly": "npm run build"
   },
   "keywords": [
     "unix",
@@ -20,7 +27,7 @@
     "cli",
     "filesystem"
   ],
-  "author": "Scott",
+  "author": "scott@hypexr.org",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -31,10 +38,18 @@
   },
   "homepage": "https://github.com/hypexr/unix-shell-js#readme",
   "files": [
-    "index.js",
-    "vi-editor.js",
-    "example-files.js",
+    "dist/**/*",
+    "src/**/*",
     "README.md",
     "LICENSE"
-  ]
+  ],
+  "devDependencies": {
+    "@jest/globals": "^30.2.0",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^24.9.1",
+    "jest": "^30.2.0",
+    "jest-environment-jsdom": "^30.2.0",
+    "ts-jest": "^29.4.5",
+    "typescript": "^5.9.3"
+  }
 }

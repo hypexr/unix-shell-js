@@ -1,6 +1,13 @@
+"use strict";
 // Example file structure for user's home directory
 // These are minimal example files that can be used to populate the filesystem
-
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.createExampleFiles = createExampleFiles;
+/**
+ * Creates an example filesystem structure with sample files
+ * @param username - The username to create the home directory for
+ * @returns A complete filesystem structure with example files
+ */
 function createExampleFiles(username = 'user') {
     return {
         '/': {
@@ -48,13 +55,12 @@ Try creating your own files with touch or vim!
         }
     };
 }
-
-// Make available in browser
 if (typeof window !== 'undefined') {
     window.createExampleFiles = createExampleFiles;
 }
-
 // Export for Node.js
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = createExampleFiles;
+    module.exports = { createExampleFiles };
+    module.exports.createExampleFiles = createExampleFiles;
 }
+//# sourceMappingURL=example-files.js.map

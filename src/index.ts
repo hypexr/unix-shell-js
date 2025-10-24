@@ -1,18 +1,150 @@
 // Unix Shell JS - Browser-based Unix/Linux Command Emulator
 // Main entry point for the library
 
-class UnixShell {
-    constructor(options = {}) {
-        // Options: fileSystem, username, customCommands, persistence
+/**
+ * Represents a file (string) or directory (nested FileSystemNode)
+ */
+export type FileSystemNode = string | FileSystemDirectory;
+
+/**
+ * Directory structure where keys are file/folder names
+ */
+export interface FileSystemDirectory {
+    [key: string]: FileSystemNode;
+}
+
+/**
+ * Root filesystem structure
+ */
+export interface FileSystem {
+    '/': FileSystemDirectory;
+}
+
+/**
+ * Persistence configuration options
+ */
+export interface PersistenceOptions {
+    enabled: boolean;
+    prefix?: string;
+}
+
+/**
+ * Options for initializing the Unix Shell
+ */
+export interface UnixShellOptions {
+    fileSystem?: FileSystem;
+    username?: string;
+    customCommands?: Record<string, CommandHandler>;
+    persistence?: PersistenceOptions | null;
+}
+
+/**
+ * Environment variables
+ */
+export interface Environment {
+    USER: string;
+    HOME: string;
+    PWD: string;
+    PATH: string;
+    SHELL: string;
+    [key: string]: string;
+}
+
+/**
+ * Command handler function type
+ */
+export type CommandHandler = (args: string[]) => string;
+
+/**
+ * Commands registry
+ */
+export interface Commands {
+    [command: string]: CommandHandler;
+}
+
+/**
+ * User state for exit command
+ */
+interface UserState {
+    user: string;
+    home: string;
+    path: string;
+}
+
+/**
+ * File owner information
+ */
+interface FileOwner {
+    user: string;
+    group: string;
+}
+
+/**
+ * Grep flags for filtering output
+ */
+interface GrepFlags {
+    ignoreCase: boolean;
+    invert: boolean;
+}
+
+/**
+ * Tab completion result
+ */
+export interface CompletionResult {
+    type: 'command' | 'path';
+    matches: string[];
+    prefix: string;
+    filePrefix?: string;
+}
+
+/**
+ * Process information for ps command
+ */
+interface ProcessInfo {
+    pid: number;
+    user: string;
+    tty: string;
+    time: string;
+    cmd: string;
+}
+
+/**
+ * Loaded state from localStorage
+ */
+interface LoadedState {
+    fileSystem: FileSystem;
+    currentUser: string;
+    currentPath: string;
+}
+
+/**
+ * Main Unix Shell class
+ */
+export class UnixShell {
+    public fileSystem: FileSystem;
+    public currentUser: string;
+    public currentPath: string;
+    public environment: Environment;
+    public commandHistory: string[];
+    public commands: Commands;
+
+    private persistence: PersistenceOptions | null;
+    private persistencePrefix: string;
+    private userStack: UserState[];
+    private _isPiped: boolean;
+
+    constructor(options: UnixShellOptions = {}) {
         const {
             fileSystem,
             username = 'user',
             customCommands = {},
-            persistence = null  // { enabled: true, prefix: 'unixshell' }
+            persistence = null
         } = options;
 
         // Set up persistence configuration
         this.persistence = persistence;
+        this.persistencePrefix = 'unixshell';
+
         if (this.persistence && this.persistence.enabled) {
             this.persistencePrefix = this.persistence.prefix || 'unixshell';
 
@@ -52,11 +184,14 @@ class UnixShell {
         this._isPiped = false;
 
         // Initialize commands with custom commands
+        this.commands = {};
         this.initializeCommands(customCommands);
     }
 
-    createDefaultFileSystem(username) {
-        // Minimal default filesystem with just a few example files
+    /**
+     * Creates a default filesystem structure
+     */
+    createDefaultFileSystem(username: string): FileSystem {
         return {
             '/': {
                 'home': {
@@ -73,8 +208,10 @@ class UnixShell {
         };
     }
 
-    // LocalStorage persistence methods
-    loadFromStorage() {
+    /**
+     * Loads shell state from localStorage
+     */
+    loadFromStorage(): LoadedState | null {
         if (typeof localStorage === 'undefined') {
             return null;
         }
@@ -92,7 +229,7 @@ class UnixShell {
                 return null;
             }
 
-            const fileSystem = JSON.parse(savedFS);
+            const fileSystem = JSON.parse(savedFS) as FileSystem;
 
             // Validate filesystem structure
             if (!fileSystem['/']) {
@@ -102,7 +239,7 @@ class UnixShell {
 
             // Validate that the saved path exists in the filesystem
             const pathParts = savedPath.split('/').filter(p => p);
-            let current = fileSystem['/'];
+            let current: FileSystemNode = fileSystem['/'];
             for (const part of pathParts) {
                 if (!current || typeof current !== 'object' || !(part in current)) {
                     console.warn('Invalid filesystem structure in localStorage - saved path does not exist:', savedPath);
@@ -122,7 +259,10 @@ class UnixShell {
         }
     }
 
-    saveToStorage() {
+    /**
+     * Saves shell state to localStorage
+     */
+    saveToStorage(): void {
         if (!this.persistence || !this.persistence.enabled || typeof localStorage === 'undefined') {
             return;
         }
@@ -140,7 +280,10 @@ class UnixShell {
         }
     }
 
-    clearStorage() {
+    /**
+     * Clears saved state from localStorage
+     */
+    clearStorage(): void {
         if (!this.persistence || !this.persistence.enabled || typeof localStorage === 'undefined') {
             return;
         }
@@ -158,7 +301,10 @@ class UnixShell {
         }
     }
 
-    initializeCommands(customCommands) {
+    /**
+     * Initializes built-in and custom commands
+     */
+    initializeCommands(customCommands: Record<string, CommandHandler>): void {
         // Built-in commands
         this.commands = {
             help: this.cmd_help.bind(this),
@@ -191,8 +337,10 @@ class UnixShell {
         }
     }
 
-    // Helper: Navigate filesystem
-    resolvePath(path) {
+    /**
+     * Resolves a path (relative or absolute) to an absolute path
+     */
+    resolvePath(path: string): string {
         // Expand ~ to home directory
         if (path.startsWith('~')) {
             path = this.environment.HOME + path.slice(1);
@@ -214,10 +362,13 @@ class UnixShell {
         return '/' + parts.join('/');
     }
 
-    getNode(path) {
+    /**
+     * Gets a filesystem node at the specified path
+     */
+    getNode(path: string): FileSystemNode | null {
         const fullPath = this.resolvePath(path);
         const parts = fullPath.split('/').filter(p => p);
-        let current = this.fileSystem['/'];
+        let current: FileSystemNode = this.fileSystem['/'];
 
         for (const part of parts) {
             if (current && typeof current === 'object' && part in current) {
@@ -229,16 +380,20 @@ class UnixShell {
         return current;
     }
 
-    // Get owner of a file/directory based on path
-    getOwner(path) {
+    /**
+     * Gets the owner of a file/directory based on path
+     */
+    getOwner(path: string): FileOwner {
         if (path.startsWith(`/home/${this.currentUser}`) || path === `/home/${this.currentUser}`) {
             return { user: this.currentUser, group: this.currentUser };
         }
         return { user: 'root', group: 'root' };
     }
 
-    // Check if current user has write permission to a path
-    canWrite(path) {
+    /**
+     * Checks if current user has write permission to a path
+     */
+    canWrite(path: string): boolean {
         // Root can write anywhere
         if (this.currentUser === 'root') {
             return true;
@@ -250,17 +405,17 @@ class UnixShell {
     }
 
     // Command implementations
-    cmd_help() {
+    cmd_help(): string {
         const commandList = Object.keys(this.commands).sort();
         return `Available commands:\n${commandList.map(cmd => `  ${cmd}`).join('\n')}\n\nType any command to try it out!`;
     }
 
-    cmd_ls(args) {
-        // Parse flags and path
+    cmd_ls(args: string[]): string {
+        // Parse flags and paths
         let showHidden = false;
         let longFormat = false;
         let humanReadable = false;
-        let targetPath = null;
+        const targetPaths: string[] = [];
 
         for (const arg of args) {
             if (arg.startsWith('-')) {
@@ -269,97 +424,112 @@ class UnixShell {
                 if (arg.includes('l')) longFormat = true;
                 if (arg.includes('h')) humanReadable = true;
             } else {
-                targetPath = arg;
+                targetPaths.push(arg);
             }
         }
 
-        const path = targetPath || this.currentPath;
-        const node = this.getNode(path);
-
-        if (node === null || node === undefined) {
-            return `ls: cannot access '${targetPath || '.'}': No such file or directory`;
+        // If no paths specified, use current directory
+        if (targetPaths.length === 0) {
+            targetPaths.push(this.currentPath);
         }
 
-        if (typeof node === 'string') {
-            return targetPath || '.';
-        }
+        const results: string[] = [];
 
-        let entries = Object.keys(node);
+        for (const targetPath of targetPaths) {
+            const path = targetPath === '.' ? this.currentPath : this.resolvePath(targetPath);
+            const node = this.getNode(path);
 
-        // Filter hidden files unless -a is specified
-        if (!showHidden) {
-            entries = entries.filter(name => !name.startsWith('.'));
-        }
+            if (node === null || node === undefined) {
+                results.push(`ls: cannot access '${targetPath}': No such file or directory`);
+                continue;
+            }
 
-        if (entries.length === 0) {
-            return '';
-        }
+            if (typeof node === 'string') {
+                // It's a file, just list the filename
+                results.push(targetPath);
+                continue;
+            }
 
-        // Sort entries (directories first, then alphabetically)
-        entries.sort((a, b) => {
-            const aIsDir = typeof node[a] === 'object';
-            const bIsDir = typeof node[b] === 'object';
+            let entries = Object.keys(node);
 
-            if (aIsDir && !bIsDir) return -1;
-            if (!aIsDir && bIsDir) return 1;
-            return a.localeCompare(b);
-        });
+            // Filter hidden files unless -a is specified
+            if (!showHidden) {
+                entries = entries.filter(name => !name.startsWith('.'));
+            }
 
-        if (longFormat) {
-            // Long format listing
-            return entries.map(name => {
-                const isDir = typeof node[name] === 'object';
-                const perms = isDir ? 'drwxr-xr-x' : '-rw-r--r--';
-                const links = isDir ? '2' : '1';
+            if (entries.length === 0) {
+                continue;
+            }
 
-                // Determine ownership based on file path
-                const filePath = path === '/' ? `/${name}` : `${path}/${name}`;
-                const owner = this.getOwner(filePath);
-                const user = owner.user;
-                const group = owner.group;
+            // Sort entries (directories first, then alphabetically)
+            entries.sort((a, b) => {
+                const aIsDir = typeof node[a] === 'object';
+                const bIsDir = typeof node[b] === 'object';
 
-                let size;
-                if (isDir) {
-                    size = '4096';
-                } else {
-                    const bytes = node[name].length;
-                    if (humanReadable) {
-                        if (bytes < 1024) size = bytes + 'B';
-                        else if (bytes < 1024 * 1024) size = Math.round(bytes / 1024) + 'K';
-                        else size = Math.round(bytes / (1024 * 1024)) + 'M';
-                    } else {
-                        size = bytes.toString();
-                    }
-                }
-
-                const date = new Date().toLocaleDateString('en-US', {
-                    month: 'short',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                });
-
-                return `${perms} ${links} ${user.padEnd(8)} ${group.padEnd(8)} ${size.padStart(humanReadable ? 5 : 8)} ${date} ${name}`;
-            }).join('\n');
-        } else {
-            // Simple format
-            const formatted = entries.map(name => {
-                const isDir = typeof node[name] === 'object';
-                return isDir ? `${name}/` : name;
+                if (aIsDir && !bIsDir) return -1;
+                if (!aIsDir && bIsDir) return 1;
+                return a.localeCompare(b);
             });
 
-            // If output is being piped, use one per line
-            // Otherwise, use columns (space-separated)
-            if (this._isPiped) {
-                return formatted.join('\n');
+            if (longFormat) {
+                // Long format listing
+                const listing = entries.map(name => {
+                    const isDir = typeof node[name] === 'object';
+                    const perms = isDir ? 'drwxr-xr-x' : '-rw-r--r--';
+                    const links = isDir ? '2' : '1';
+
+                    // Determine ownership based on file path
+                    const filePath = path === '/' ? `/${name}` : `${path}/${name}`;
+                    const owner = this.getOwner(filePath);
+                    const user = owner.user;
+                    const group = owner.group;
+
+                    let size: string;
+                    if (isDir) {
+                        size = '4096';
+                    } else {
+                        const bytes = (node[name] as string).length;
+                        if (humanReadable) {
+                            if (bytes < 1024) size = bytes + 'B';
+                            else if (bytes < 1024 * 1024) size = Math.round(bytes / 1024) + 'K';
+                            else size = Math.round(bytes / (1024 * 1024)) + 'M';
+                        } else {
+                            size = bytes.toString();
+                        }
+                    }
+
+                    const date = new Date().toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+
+                    return `${perms} ${links} ${user.padEnd(8)} ${group.padEnd(8)} ${size.padStart(humanReadable ? 5 : 8)} ${date} ${name}`;
+                }).join('\n');
+                results.push(listing);
             } else {
-                // Multi-column output for terminal display
-                return formatted.join('  ');
+                // Simple format
+                const formatted = entries.map(name => {
+                    const isDir = typeof node[name] === 'object';
+                    return isDir ? `${name}/` : name;
+                });
+
+                // If output is being piped, use one per line
+                // Otherwise, use columns (space-separated)
+                if (this._isPiped) {
+                    results.push(formatted.join('\n'));
+                } else {
+                    // Multi-column output for terminal display
+                    results.push(formatted.join('  '));
+                }
             }
         }
+
+        return results.join('\n');
     }
 
-    cmd_cd(args) {
+    cmd_cd(args: string[]): string {
         if (!args[0]) {
             this.currentPath = this.environment.HOME;
             this.environment.PWD = this.currentPath;
@@ -382,11 +552,11 @@ class UnixShell {
         return '';
     }
 
-    cmd_pwd() {
+    cmd_pwd(): string {
         return this.currentPath;
     }
 
-    cmd_cat(args) {
+    cmd_cat(args: string[]): string {
         if (!args[0]) {
             return 'cat: missing file operand';
         }
@@ -404,45 +574,45 @@ class UnixShell {
         return node;
     }
 
-    cmd_echo(args) {
+    cmd_echo(args: string[]): string {
         // Join arguments and remove surrounding quotes
         const text = args.join(' ');
         // Remove surrounding single or double quotes
         return text.replace(/^["']|["']$/g, '');
     }
 
-    cmd_clear() {
+    cmd_clear(): string {
         return '__CLEAR__';
     }
 
-    cmd_whoami() {
+    cmd_whoami(): string {
         return this.environment.USER;
     }
 
-    cmd_date() {
+    cmd_date(): string {
         return new Date().toString();
     }
 
-    cmd_uname(args) {
+    cmd_uname(args: string[]): string {
         if (args.includes('-a')) {
             return 'UnixShell 1.0.0 UnixShell Terminal x86_64 GNU/JavaScript';
         }
         return 'UnixShell';
     }
 
-    cmd_env() {
+    cmd_env(): string {
         return Object.entries(this.environment)
             .map(([key, value]) => `${key}=${value}`)
             .join('\n');
     }
 
-    cmd_history() {
+    cmd_history(): string {
         return this.commandHistory
             .map((cmd, i) => `${i + 1}  ${cmd}`)
             .join('\n');
     }
 
-    cmd_mkdir(args) {
+    cmd_mkdir(args: string[]): string {
         if (!args[0]) {
             return 'mkdir: missing operand';
         }
@@ -455,7 +625,7 @@ class UnixShell {
         }
 
         const parts = path.split('/').filter(p => p);
-        const dirName = parts.pop();
+        const dirName = parts.pop()!;
         const parentPath = '/' + parts.join('/');
         const parent = this.getNode(parentPath);
 
@@ -475,7 +645,7 @@ class UnixShell {
         return '';
     }
 
-    cmd_touch(args) {
+    cmd_touch(args: string[]): string {
         if (!args[0]) {
             return 'touch: missing file operand';
         }
@@ -488,7 +658,7 @@ class UnixShell {
         }
 
         const parts = path.split('/').filter(p => p);
-        const fileName = parts.pop();
+        const fileName = parts.pop()!;
         const parentPath = '/' + parts.join('/');
         const parent = this.getNode(parentPath);
 
@@ -506,7 +676,7 @@ class UnixShell {
         return '';
     }
 
-    cmd_rm(args) {
+    cmd_rm(args: string[]): string {
         if (!args[0]) {
             return 'rm: missing operand';
         }
@@ -515,7 +685,7 @@ class UnixShell {
         let recursive = false;
         let force = false;
         let verbose = false;
-        const targets = [];
+        const targets: string[] = [];
 
         for (const arg of args) {
             if (arg.startsWith('-')) {
@@ -531,14 +701,14 @@ class UnixShell {
             return 'rm: missing operand';
         }
 
-        const errors = [];
-        const removed = [];
+        const errors: string[] = [];
+        const removed: string[] = [];
 
         // Process each target
         for (const target of targets) {
             const path = this.resolvePath(target);
             const parts = path.split('/').filter(p => p);
-            const fileName = parts.pop();
+            const fileName = parts.pop()!;
             const parentPath = '/' + parts.join('/');
             const parent = this.getNode(parentPath);
 
@@ -548,7 +718,7 @@ class UnixShell {
                 continue;
             }
 
-            if (!parent || !(fileName in parent)) {
+            if (!parent || typeof parent !== 'object' || !(fileName in parent)) {
                 if (!force) {
                     errors.push(`rm: cannot remove '${target}': No such file or directory`);
                 }
@@ -583,8 +753,8 @@ class UnixShell {
         return output;
     }
 
-    cmd_tree() {
-        const buildTree = (node, prefix = '', isLast = true) => {
+    cmd_tree(): string {
+        const buildTree = (node: FileSystemDirectory, prefix: string = '', isLast: boolean = true): string => {
             let result = '';
             const entries = Object.entries(node);
 
@@ -597,7 +767,7 @@ class UnixShell {
 
                 if (isDir) {
                     const newPrefix = prefix + (isLastEntry ? '    ' : '│   ');
-                    result += buildTree(value, newPrefix, isLastEntry);
+                    result += buildTree(value as FileSystemDirectory, newPrefix, isLastEntry);
                 }
             });
 
@@ -605,15 +775,15 @@ class UnixShell {
         };
 
         const node = this.getNode(this.currentPath);
-        return this.currentPath + '/\n' + buildTree(node);
+        return this.currentPath + '/\n' + buildTree(node as FileSystemDirectory);
     }
 
-    cmd_ps(args) {
+    cmd_ps(args: string[]): string {
         // Basic ps command - shows minimal process list
         // Can be overridden by custom commands for more detailed output
 
         // Base processes
-        const processes = [
+        const processes: ProcessInfo[] = [
             { pid: 1, user: 'root', tty: '?', time: '0:01', cmd: 'init' },
             { pid: 100, user: this.currentUser, tty: 'pts/0', time: '0:00', cmd: 'bash' },
             { pid: 101, user: this.currentUser, tty: 'pts/0', time: '0:00', cmd: 'ps' }
@@ -628,15 +798,15 @@ class UnixShell {
         return output;
     }
 
-    cmd_vi(args) {
+    cmd_vi(args: string[]): string {
         return this.openEditor(args[0] || 'untitled');
     }
 
-    cmd_vim(args) {
+    cmd_vim(args: string[]): string {
         return this.openEditor(args[0] || 'untitled');
     }
 
-    cmd_su(args) {
+    cmd_su(args: string[]): string {
         const targetUser = args[0] || 'root';
 
         // Push current user to stack before switching
@@ -656,7 +826,7 @@ class UnixShell {
         return `__USER_SWITCHED__:${targetUser}`;
     }
 
-    cmd_sudo(args) {
+    cmd_sudo(args: string[]): string {
         // Handle "sudo su" specifically
         if (args[0] === 'su') {
             return this.cmd_su(args.slice(1));
@@ -673,13 +843,13 @@ class UnixShell {
         }
     }
 
-    cmd_exit() {
+    cmd_exit(): string {
         // Pop the previous user from the stack
         if (this.userStack.length === 0) {
             return 'exit: no other user session to return to';
         }
 
-        const previousUser = this.userStack.pop();
+        const previousUser = this.userStack.pop()!;
         this.currentUser = previousUser.user;
         this.environment.USER = previousUser.user;
         this.environment.HOME = previousUser.home;
@@ -689,7 +859,43 @@ class UnixShell {
         return `__USER_SWITCHED__:${previousUser.user}`;
     }
 
-    execute(commandLine) {
+    /**
+     * Expands wildcards in arguments
+     */
+    private expandWildcards(args: string[]): string[] {
+        const expanded: string[] = [];
+
+        for (const arg of args) {
+            // Check if argument contains wildcards
+            if (arg.includes('*') || arg.includes('?')) {
+                const currentDir = this.getNode(this.currentPath);
+
+                if (currentDir && typeof currentDir === 'object') {
+                    const pattern = arg.replace(/\*/g, '.*').replace(/\?/g, '.');
+                    const regex = new RegExp(`^${pattern}$`);
+                    const matches = Object.keys(currentDir).filter(name => regex.test(name));
+
+                    if (matches.length > 0) {
+                        expanded.push(...matches);
+                    } else {
+                        // No matches, keep the pattern as-is
+                        expanded.push(arg);
+                    }
+                } else {
+                    expanded.push(arg);
+                }
+            } else {
+                expanded.push(arg);
+            }
+        }
+
+        return expanded;
+    }
+
+    /**
+     * Executes a command line input
+     */
+    execute(commandLine: string): string {
         if (!commandLine.trim()) {
             return '';
         }
@@ -698,8 +904,8 @@ class UnixShell {
         this.commandHistory.push(commandLine);
 
         // Check for pipe to grep
-        let grepPattern = null;
-        let grepFlags = { ignoreCase: false, invert: false };
+        let grepPattern: string | null = null;
+        let grepFlags: GrepFlags = { ignoreCase: false, invert: false };
         let actualCommand = commandLine;
 
         const pipeIndex = commandLine.indexOf('|');
@@ -734,8 +940,8 @@ class UnixShell {
         }
 
         // Check for output redirection
-        let redirectMode = null;
-        let redirectFile = null;
+        let redirectMode: 'append' | 'overwrite' | null = null;
+        let redirectFile: string | null = null;
 
         const appendMatch = commandLine.match(/^(.+?)\s*>>\s*(.+)$/);
         const overwriteMatch = commandLine.match(/^(.+?)\s*>\s*(.+)$/);
@@ -753,7 +959,10 @@ class UnixShell {
         // Parse command and arguments
         const parts = actualCommand.trim().split(/\s+/);
         const command = parts[0];
-        const args = parts.slice(1);
+        let args = parts.slice(1);
+
+        // Expand wildcards in arguments
+        args = this.expandWildcards(args);
 
         // Execute the command
         let output = '';
@@ -763,7 +972,7 @@ class UnixShell {
                 output = this.commands[command](args);
                 this._isPiped = false;
             } catch (error) {
-                return `Error executing ${command}: ${error.message}`;
+                return `Error executing ${command}: ${(error as Error).message}`;
             }
         } else {
             return `${command}: command not found`;
@@ -773,7 +982,7 @@ class UnixShell {
         if (grepPattern !== null && output) {
             const lines = output.split('\n');
             const filtered = lines.filter(line => {
-                let matches;
+                let matches: boolean;
                 if (grepFlags.ignoreCase) {
                     matches = line.toLowerCase().includes(grepPattern.toLowerCase());
                 } else {
@@ -804,10 +1013,13 @@ class UnixShell {
         return output;
     }
 
-    writeToFile(filePath, content, mode) {
+    /**
+     * Writes content to a file
+     */
+    writeToFile(filePath: string, content: string, mode: 'append' | 'overwrite'): string | null {
         const fullPath = this.resolvePath(filePath);
         const parts = fullPath.split('/').filter(p => p);
-        const fileName = parts.pop();
+        const fileName = parts.pop()!;
         const parentPath = '/' + parts.join('/');
         const parent = this.getNode(parentPath);
 
@@ -824,7 +1036,7 @@ class UnixShell {
         }
 
         if (mode === 'append' && fileName in parent) {
-            parent[fileName] += content;
+            parent[fileName] = (parent[fileName] as string) + content;
         } else {
             parent[fileName] = content;
         }
@@ -832,15 +1044,24 @@ class UnixShell {
         return null;
     }
 
-    getCurrentPath() {
+    /**
+     * Gets the current working directory
+     */
+    getCurrentPath(): string {
         return this.currentPath;
     }
 
-    getCurrentUser() {
+    /**
+     * Gets the current user
+     */
+    getCurrentUser(): string {
         return this.currentUser;
     }
 
-    openEditor(filename) {
+    /**
+     * Opens the Vi editor
+     */
+    openEditor(filename: string): string {
         const fullPath = this.resolvePath(filename);
         const node = this.getNode(fullPath);
 
@@ -849,29 +1070,32 @@ class UnixShell {
             content = node;
         }
 
-        const saveCallback = (filename, content) => {
+        const saveCallback = (filename: string, content: string): boolean => {
             const result = this.writeToFile(filename, content, 'overwrite');
             return result === null;
         };
 
-        const exitCallback = () => {
-            if (window.enableTerminal) {
-                window.enableTerminal();
+        const exitCallback = (): void => {
+            if (typeof window !== 'undefined' && (window as any).enableTerminal) {
+                (window as any).enableTerminal();
             }
         };
 
-        if (window.disableTerminal) {
-            window.disableTerminal();
+        if (typeof window !== 'undefined' && (window as any).disableTerminal) {
+            (window as any).disableTerminal();
         }
 
-        if (typeof window !== 'undefined' && window.ViEditor) {
-            new window.ViEditor(filename, content, saveCallback, exitCallback);
+        if (typeof window !== 'undefined' && (window as any).ViEditor) {
+            new (window as any).ViEditor(filename, content, saveCallback, exitCallback);
         }
 
         return '__VI_OPENED__';
     }
 
-    getCompletions(partial) {
+    /**
+     * Gets tab completion suggestions
+     */
+    getCompletions(partial: string): CompletionResult {
         const parts = partial.trim().split(/\s+/);
 
         if (parts.length === 1) {
@@ -909,10 +1133,11 @@ class UnixShell {
 
 // Make available in browser
 if (typeof window !== 'undefined') {
-    window.UnixShell = UnixShell;
+    (window as any).UnixShell = UnixShell;
 }
 
 // Export for Node.js
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = UnixShell;
+    module.exports = { UnixShell };
+    module.exports.UnixShell = UnixShell;
 }
