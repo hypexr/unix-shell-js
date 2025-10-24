@@ -56,12 +56,5 @@ Try creating your own files with touch or vim!
   };
 }
 
-// Make available in browser
-if (typeof window !== 'undefined') {
-  (window as any).createExampleFiles = createExampleFiles;
-}
-
-// Export for Node.js/npm
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { createExampleFiles };
-}
+// Default export for convenience
+export default createExampleFiles;

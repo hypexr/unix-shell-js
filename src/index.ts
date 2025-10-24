@@ -1133,12 +1133,5 @@ export class UnixShell {
   }
 }
 
-// Make available in browser
-if (typeof window !== 'undefined') {
-  (window as any).UnixShell = UnixShell;
-}
-
-// Export for Node.js/npm
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { UnixShell };
-}
+// Default export for convenience
+export default UnixShell;
