@@ -5,7 +5,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "tsc && npm run copy-to-demo",
+    "build": "tsc && node scripts/browser-build.js && npm run copy-to-demo",
     "copy-to-demo": "cp dist/index.js dist/vi-editor.js dist/example-files.js docs/",
     "watch": "tsc --watch",
     "test": "jest",
