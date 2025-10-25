@@ -520,8 +520,8 @@ export class UnixShell {
         if (this._isPiped) {
           results.push(formatted.join('\n'));
         } else {
-          // Multi-column output for terminal display
-          results.push(formatted.join('  '));
+          // Multi-column output for terminal display with wider spacing
+          results.push(formatted.join('    '));
         }
       }
     }
