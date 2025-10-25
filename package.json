@@ -1,6 +1,6 @@
 {
   "name": "unix-shell-js",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "Browser-based Unix/Linux command emulator with vi editor support",
   "main": "./dist/cjs/index.js",
   "module": "./dist/esm/index.js",
