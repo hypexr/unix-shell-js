@@ -11,12 +11,13 @@ A browser-based Unix/Linux command emulator with vi editor support.
 ## Features
 
 - Common Unix commands (ls, cd, cat, mkdir, rm, etc.)
+- Add and modify commands
+- Customizable filesystem
 - Vi/Vim editor with modal editing
 - Tab completion
 - Command history
 - Pipe and redirection support
 - Wildcard expansion (`*` and `?`)
-- Customizable filesystem
 - Custom command support
 
 ## Installation
@@ -43,8 +44,6 @@ npm link unix-shell-js
 
 ## Development
 
-This library is written in TypeScript and compiled to JavaScript.
-
 ### Build Commands
 
 - `npm run build` - Compile TypeScript to JavaScript (outputs to `dist/`) and copy to demo
@@ -57,15 +56,6 @@ This library is written in TypeScript and compiled to JavaScript.
 - `npm test` - Run all tests
 - `npm run test:watch` - Run tests in watch mode
 - `npm run test:coverage` - Run tests with coverage report
-
-The project includes comprehensive test suites covering:
-- Core shell functionality (commands, navigation, environment)
-- File system operations (create, read, delete files/directories)
-- File redirection and piping
-- Custom command support
-- Tab completion
-- User switching (su, sudo, exit)
-- localStorage persistence
 
 ### Project Structure
 
