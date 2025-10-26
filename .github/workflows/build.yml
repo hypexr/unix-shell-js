@@ -28,8 +28,8 @@ jobs:
 
     - name: Check if build outputs exist
       run: |
-        test -f dist/index.js || (echo "dist/index.js not found" && exit 1)
-        test -f dist/vi-editor.js || (echo "dist/vi-editor.js not found" && exit 1)
-        test -f dist/example-files.js || (echo "dist/example-files.js not found" && exit 1)
-        test -f dist/index.d.ts || (echo "dist/index.d.ts not found" && exit 1)
+        test -f dist/esm/index.js || (echo "dist/esm/index.js not found" && exit 1)
+        test -f dist/cjs/index.js || (echo "dist/cjs/index.js not found" && exit 1)
+        test -f dist/browser/index.js || (echo "dist/browser/index.js not found" && exit 1)
+        test -f dist/esm/index.d.ts || (echo "dist/esm/index.d.ts not found" && exit 1)
         echo "All build outputs present!"
